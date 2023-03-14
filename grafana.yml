@@ -1,0 +1,109 @@
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  labels:
+    app: grafana
+  name: "grafana-deployment"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "grafana"
+  template:
+    metadata:
+      labels:
+        app: "grafana"
+    spec:
+      containers:
+      - image: "grafana/grafana"
+        imagePullPolicy: "IfNotPresent"
+        name: "grafana-deployment"
+        ports:
+        - containerPort: 3000
+          protocol: "TCP"
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: grafanadat-storage
+          mountPath: /var/lib/grafana
+        - name: grafanalog-storage
+          mountPath: /var/log/grafana
+      volumes:
+      - name: grafanadat-storage
+        persistentVolumeClaim:
+          claimName: grafanadat-pv-claim
+      - name: grafanalog-storage
+        persistentVolumeClaim:
+          claimName: grafanalog-pv-claim
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grdat-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/kuber_data/grafana_dat"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grlog-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/kuber_data/grafana_log"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafanadat-pv-claim
+  labels:
+    app: grafana
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafanalog-pv-claim
+  labels:
+    app: grafana
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

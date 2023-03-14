@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: front
+spec:
+  port:
+    targetPort: 3002
+  to:
+    kind: Service
+    name: front

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: back-deploy
+  labels:
+    app: back
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: back
+  template:
+    metadata:
+      labels:
+        app: back
+    spec:
+      serviceAccountName: postgres-sa
+      initContainers:
+      - name: check-db-ready
+        image: postgres:15
+        env:
+          - name: POSTGRES_PASSWORD
+            value: mysecretpassword
+          - name: POSTGRES_USER
+            value: master
+        command: ['sh', '-c', 'until pg_isready -h db -p 5432 -U master; do echo waiting for database; sleep 2; done;']
+      containers:
+      - name: back
+        image: docker.io/skachan/back:latest
+        imagePullPolicy: IfNotPresent
+        resources:
+         limits:
+           cpu: 700m
+         requests:
+           cpu: 300m
+        livenessProbe:
+          tcpSocket:
+            port: 3001
+          initialDelaySeconds: 5
+          periodSeconds: 5

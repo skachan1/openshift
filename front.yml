@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: front-deploy
+  labels:
+    app: front
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: front
+  template:
+    metadata:
+      labels:
+        app: front
+    spec:
+      serviceAccountName: postgres-sa
+      containers:
+      - name: front
+        image: skachan/front:2
+        imagePullPolicy: IfNotPresent
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+ name: back-deploy
+ namespace: default
+spec:
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: back-deploy
+ minReplicas: 1
+ maxReplicas: 3
+ targetCPUUtilizationPercentage: 50

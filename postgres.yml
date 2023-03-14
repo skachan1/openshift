@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-statefulset
+  labels:
+    app: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      serviceAccountName: postgres-sa
+      containers:
+      - name: dbpod
+        image: postgres:15
+        envFrom:
+        - secretRef:
+            name: postgres
+        - configMapRef:
+            name: postgres
+        ports:
+        - containerPort: 5432
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -d $POSTGRES_DB -U "$POSTGRES_USER"
+        volumeMounts:
+        - name: postgres-database-storage
+          mountPath: /temp/data
+        imagePullPolicy: IfNotPresent
+      - name: "exporter"
+        image: "bitnami/postgres-exporter"
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "postgresql://master:password@localhost:5432/?sslmode=disable"
+      volumes:
+      - name: postgres-database-storage
+        persistentVolumeClaim:
+          claimName: postgres-pv-claim
+      - name: data
+        emptyDir: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pv-claim
+  labels:
+    app: db
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres
+stringData:
+  POSTGRES_PASSWORD: password
+  POSTGRES_USER: master
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres
+data:
+  POSTGRES_DB: master
+  PGDATA: /temp/data
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/kuber_data/pg"
